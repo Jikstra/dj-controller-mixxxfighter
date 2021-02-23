@@ -6,6 +6,8 @@ import sys
 
 SLEEP_INTERVAL = 0.3
 
+NAME = 'MixxxFighter'
+
 def printException(e):
     print("Error: ", e)
     print(traceback.format_exc())
@@ -14,7 +16,7 @@ def printException(e):
 
 def main():
     device = '/dev/ttyACM0'
-    with mido.open_output('MiniX1', client_name='MiniX1', virtual=True) as output:
+    with mido.open_output(NAME, client_name=NAME, virtual=True) as output:
         found_device = True
         while True:
             try:
