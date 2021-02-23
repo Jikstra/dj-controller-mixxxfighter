@@ -2,4 +2,4 @@
 
 #include "constants.h"
 
-#include "hardware/Matrix.h"
+#include "hardware/LEDMatrix.h"
