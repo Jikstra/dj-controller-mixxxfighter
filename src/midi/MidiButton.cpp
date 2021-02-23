@@ -4,7 +4,7 @@ MidiButton::MidiButton(int pin_button, int control, int channel) : Button(pin_bu
 
 void MidiButton::onPress() {
   DBG("MidiButton [%i] Pressed!", pin_button);
-  sendMIDI(MIDI_COMMAND_BUTTON, channel, control, MIDI_VALUE_BUTTON_PRESS);
+  sendMIDI(MIDI_COMMAND_BUTTON, channel, control, MIDI_VALUE_BUTTON_PRESSED);
 }
 
 void MidiButton::onRelease() {

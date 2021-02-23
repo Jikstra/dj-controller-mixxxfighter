@@ -34,30 +34,32 @@ void LEDMatrix::setupColumn(int column_pin) {
 }
 
 void LEDMatrix::selectRow(int row_index) {
-  if (row_index > count_row_pins) {
-    return;
-  }
+  if (row_index > count_row_pins) return;
+  if (selected_row_index != -1) unselectRow();
+  
+  selected_row_index = row_index;
   digitalWrite(row_pins[row_index], HIGH);
 }
-void LEDMatrix::unselectRow(int row_index) {
-  if (row_index > count_row_pins) {
-    return;
-  }
-  digitalWrite(row_pins[row_index], LOW);
+void LEDMatrix::unselectRow() {
+  if (selected_row_index == -1) return;
+  
+  digitalWrite(row_pins[selected_row_index], LOW);
+  selected_row_index = -1;
 }
 
 void LEDMatrix::turnOn(int column_index) {
-  if (column_index > count_column_pins) {
-    return;
-  }
+  if (column_index > count_column_pins) return;
+  if (turned_on_column_index != -1) turnOff();
+
+  turned_on_column_index = column_index;
   digitalWrite(column_pins[column_index], LOW);
 }
 
-void LEDMatrix::turnOff(int column_index) {
-  if (column_index > count_column_pins) {
-    return;
-  }
-  digitalWrite(column_pins[column_index], HIGH);
+void LEDMatrix::turnOff() {
+  if (turned_on_column_index == -1) return;
+
+  digitalWrite(column_pins[turned_on_column_index], HIGH);
+  turned_on_column_index = -1;
 }
 
 void LEDMatrix::process() {
