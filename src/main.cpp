@@ -1,6 +1,5 @@
 #include "main.h"
 
-
 const int CountLEDMatrixColumns = 4;
 int LEDMatrixColumns[CountLEDMatrixColumns] = { A2, A3, A4, A5};
 const int CountLEDMatrixRows = 2;
@@ -35,6 +34,8 @@ bool led_matrix_state[][4] = {
   {false, false, false, false}
 };
 
+MidiButton* shiftButton = new MidiButton(13, MIDI_CTRL_SHIFT, MIDI_CHANNEL_ZERO);
+
 void led_matrix_tick() {
   int row_index = _led_matrix_tick / 4;
   int column_index = _led_matrix_tick % 4;
@@ -58,6 +59,7 @@ void setup() {
   Serial.begin(115200);
   led_matrix->setup();
   button_matrix->setup();
+  shiftButton->setup();
 }
 
 int midi_note_to_row_index(int midi_note) {
@@ -137,4 +139,6 @@ void loop() {
     button_matrix_process_row(row_index);
     led_matrix_tick();
   }
+
+  shiftButton->process();
 }
