@@ -15,14 +15,14 @@ def printException(e):
     time.sleep(SLEEP_INTERVAL)
 
 def main():
-    device = '/dev/ttyACM0'
-    with mido.open_output(NAME, client_name=NAME, virtual=True) as output:
+    device = '/dev/ttyUSB0'
+    with mido.open_ioport(NAME, client_name=NAME, virtual=True) as virtualMidi:
         found_device = True
         while True:
             try:
-                connection = None
+                serialMidi = None
                 try:
-                    connection = serial.Serial(device, 115200, timeout=1, exclusive=True)
+                    serialMidi = serial.Serial(device, 115200, timeout=1, exclusive=True)
                 except serial.SerialException as e:
                     if found_device == True:
                         print("Could not find device ", device, ". Please connect it")
@@ -31,23 +31,29 @@ def main():
                     continue
                 except Exception as e:
                     printException(e)
-                    connection.close()
+                    serialMidi.close()
 
                 print("Opened device", device)
                 found_device = True
 
                 try:
                     while True:
-                        buf = connection.read(3)
-                        if len(buf) != 3:
-                            continue
-                        message = mido.parse(buf)
-                        print("[MIDI]", message)
-                        print("[MIDI]", message.hex())
-                        output.send(message)
+                        buf = serialMidi.read(3)
+                        if len(buf) == 3:
+                            message = mido.parse(buf)
+                            if message is not None:
+                                print("[MIDI <-]", message)
+                                print("[MIDI <-]", message.hex())
+                                virtualMidi.send(message)
+                        buf = virtualMidi.poll()
+
+                        if buf is not None:
+                            print("[MIDI ->]", buf)
+                            print("[MIDI ->]", buf.hex())
+                            serialMidi.write(buf.bytes())
                 except Exception as e:
                     printException(e)
-                    connection.close()
+                    serialMidi.close()
             except Exception as e:
                 printException(e)
 
