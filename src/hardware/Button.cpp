@@ -56,9 +56,18 @@ void Button::setup() {
 void Button::process() {
   int pin_value = digitalRead(pin_button);
 
-  ButtonState button_state = buttonState(pin_value, &button_was_pressed, &button_last_flake);
+  _process(pin_value);
+}
+
+void Button::_process(int pin_value) {
+  ButtonState button_state = _buttonState(pin_value);
   if(button_state == ButtonState::Pressed) onPress();
   if(button_state == ButtonState::Released) onRelease();
+}
+
+ButtonState Button::_buttonState(int pin_value) {
+  ButtonState button_state = buttonState(pin_value, &button_was_pressed, &button_last_flake);
+  return button_state;
 }
 
 void Button::onPress() {

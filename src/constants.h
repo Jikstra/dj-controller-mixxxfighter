@@ -1,6 +1,6 @@
 #pragma once
 
-const int DEVICE_NAME = "MiniX1";
+const int DEVICE_NAME = "MixxxFighter";
 
 const int MIDI_ALL_CHANNEL = 0x0;
 const int MIDI_LEFT_DECK_CHANNEL = 0x1;

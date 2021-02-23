@@ -18,6 +18,8 @@ class Button : public BaseComponent {
     Button(int pin_button);
     void setup();
     void process();
+    void _process(int pin_value);
+    ButtonState _buttonState(int pin_value);
     virtual void onPress();
     virtual void onRelease();
 };

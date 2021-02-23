@@ -7,7 +7,13 @@ ButtonMatrix::ButtonMatrix(int* column_pins, int count_column_pins, int* row_pin
  column_pins(column_pins),
  count_column_pins(count_column_pins),
  row_pins(row_pins),
- count_row_pins(count_row_pins) {}
+ count_row_pins(count_row_pins) {
+   buttons = new Button* [count_row_pins];
+   for (int row_pin_index = 0; row_pin_index < count_row_pins; row_pin_index++) {
+     buttons[row_pin_index] = new Button [count_column_pins](-1);
+   }
+ }
+
 
 
 void ButtonMatrix::setup() {
@@ -32,32 +38,36 @@ void ButtonMatrix::setupColumn(int column_pin) {
 }
 
 void ButtonMatrix::selectRow(int row_index) {
-  if (row_index > count_row_pins) {
-    return;
-  }
+  if (row_index > count_row_pins) return;
+  if (selected_row_index != -1) unselectRow();
+
+  selected_row_index = row_index;
   int row_pin = row_pins[row_index];
   pinMode(row_pin, OUTPUT);
-  digitalWrite(row_pin, LOW);  
+  digitalWrite(row_pin, LOW);
 }
 
-void ButtonMatrix::unselectRow(int row_index) {
-  if (row_index > count_row_pins) {
-    return;
-  }
-  int row_pin = row_pins[row_index];
+void ButtonMatrix::unselectRow() {
+  if (selected_row_index == -1) return;
+
+  int row_pin = row_pins[selected_row_index];
   setupRow(row_pin);
+  selected_row_index = -1;
 }
 
 
-int ButtonMatrix::digitalReadColumn(int column_index) {
+ButtonState ButtonMatrix::buttonStateColumn(int column_index) {
   if (column_index > count_column_pins) {
     return;
   }
   int column_pin = column_pins[column_index];
   pinMode(column_pin, INPUT_PULLUP);
-  int val = !digitalRead(column_pin);
+  int val = digitalRead(column_pin);
   pinMode(column_pin, INPUT);
-  return val;  
+  
+  ButtonState button_state = buttons[selected_row_index][column_index]._buttonState(val);
+
+  return button_state;  
 }
 
 

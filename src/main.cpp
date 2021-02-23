@@ -11,11 +11,15 @@ const int CountButtonMatrixColumns = 6;
 int ButtonMatrixColumns[CountButtonMatrixColumns] = { 2, 3, 4, 5, 6, 7 };
 const int CountButtonMatrixRows = 4;
 int ButtonMatrixRows[CountButtonMatrixRows] = { 8, 9, 10, 11 };
-ButtonMatrix* button_matrix = new ButtonMatrix(ButtonMatrixColumns, CountButtonMatrixColumns, ButtonMatrixRows, CountButtonMatrixRows);
+
+ButtonMatrix* button_matrix = new ButtonMatrix(
+  ButtonMatrixColumns,
+  CountButtonMatrixColumns,
+  ButtonMatrixRows,
+  CountButtonMatrixRows
+);
 
 BaseComponent* components[] = {
-  
-
 };
 
 void setup() { 
@@ -39,10 +43,10 @@ void loop() {
   for (int row_index = 0; row_index < CountButtonMatrixRows; row_index++) {
     button_matrix->selectRow(row_index);
     for (int column_index = 0; column_index < CountButtonMatrixColumns; column_index++) {
-      int value = button_matrix->digitalReadColumn(column_index);
-      if (value != 1) continue;
-      DBG("%i:%i = %i", row_index, column_index, value);
+      ButtonState button_state = button_matrix->buttonStateColumn(column_index);
+      if (button_state == ButtonState::Unchanged) continue;
+      DBG("%i:%i = %s", row_index, column_index, buttonStateToString(button_state));
     }
-    button_matrix->unselectRow(row_index);
+    button_matrix->unselectRow();
   }
 }
