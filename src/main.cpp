@@ -31,20 +31,22 @@ int button_midi_control_map[][6] = {
 int _led_matrix_tick = 0;
 
 bool led_matrix_state[][4] = {
-  {true, true, true, true},
-  {true, true, true, true}
+  {false, false, false, false},
+  {false, false, false, false}
 };
 
 void led_matrix_tick() {
   int row_index = _led_matrix_tick / 4;
   int column_index = _led_matrix_tick % 4;
   
-  DBG("_led_matrix_tick = %i %i:%i", _led_matrix_tick, row_index, column_index);
+  //DBG("_led_matrix_tick = %i %i:%i", _led_matrix_tick, row_index, column_index);
   
   bool led_state = led_matrix_state[row_index][column_index];
   if (led_state == true) {
     led_matrix->selectRow(row_index);
     led_matrix->turnOn(column_index);
+  } else if (row_index == led_matrix->selected_row_index && column_index == led_matrix->turned_on_column_index) {
+    led_matrix->turnOff();
   }
   
   _led_matrix_tick = _led_matrix_tick + 1;
@@ -58,6 +60,23 @@ void setup() {
   button_matrix->setup();
 }
 
+int midi_note_to_row_index(int midi_note) {
+  if (midi_note <= MIDI_CTRL_CH4) {
+    return 0;
+  } else if (midi_note >= MIDI_CTRL_MODIFIER_PAGE_ONE && midi_note <= MIDI_CTRL_MODIFIER_PAGE_FOUR) {
+    return 1;
+  }
+  return -1;
+}
+
+int midi_note_to_column_index(int midi_note) {
+  if (midi_note <= MIDI_CTRL_CH4) {
+    return midi_note;
+  } else if (midi_note >= MIDI_CTRL_MODIFIER_PAGE_ONE && midi_note <= MIDI_CTRL_MODIFIER_PAGE_FOUR) {
+    return midi_note - MIDI_CTRL_MODIFIER_PAGE_ONE;
+  }
+  return -1;
+}
 
 void button_matrix_process_row(int row_index) {
   button_matrix->selectRow(row_index);
@@ -80,9 +99,39 @@ void button_matrix_process_row(int row_index) {
   button_matrix->unselectRow();
 }
 
+void process_midi_read() {
+  if (Serial.available() < 3) return;
+  int first_byte = Serial.read();
+
+  int note = Serial.read();
+  int value = Serial.read();
+  int cmd = first_byte >> 4;
+  int channel = first_byte & 0x0F;
+
+  DBG("MIDI IN: %i %i %i %i", cmd, channel, note, value);
+
+  if (channel != 0) {
+    DBG("INVALID MIDI: Channel must be zero.");
+    return;
+  }
+  int row_index = midi_note_to_row_index(note);
+  if (row_index == -1) {
+    DBG("INVALID MIDI: Midi note is invalid (wrong row index)");
+    return;
+  }
+  int column_index = midi_note_to_column_index(note);
+  if (column_index == -1) {
+    DBG("INVALID MIDI: Midi note is invalid (wrong column index)");
+    return;
+  }
+
+  DBG("MIDI IN: Turning %s led %i:%i", (cmd == MIDI_COMMAND_LED_ON ? "on" : "off"), row_index, column_index);
+
+  led_matrix_state[row_index][column_index] = cmd == MIDI_COMMAND_LED_ON ? true : false;
+}
+
 void loop() {
-  /*for (int row_index = 0; row_index < CountLEDMatrixRows; row_index++) {
-  }*/
+  process_midi_read();
   
   for (int row_index = 0; row_index < CountButtonMatrixRows; row_index++) {
     button_matrix_process_row(row_index);
