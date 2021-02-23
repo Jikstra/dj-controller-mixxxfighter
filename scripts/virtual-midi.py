@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import mido
 import serial
 import time
@@ -14,8 +16,7 @@ def printException(e):
     print(sys.exc_info()[0])
     time.sleep(SLEEP_INTERVAL)
 
-def main():
-    device = '/dev/ttyUSB0'
+def main(device):
     with mido.open_ioport(NAME, client_name=NAME, virtual=True) as virtualMidi:
         found_device = True
         while True:
@@ -41,6 +42,8 @@ def main():
                         buf = serialMidi.read(3)
                         if len(buf) == 3:
                             message = mido.parse(buf)
+                            if message is None:
+                                print("[ERR] Received non MIDI message")
                             if message is not None:
                                 print("[MIDI <-]", message)
                                 print("[MIDI <-]", message.hex())
@@ -59,4 +62,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    device = '/dev/ttyUSB0'
+    if len(sys.argv) == 2:
+        device = sys.argv[1]
+    main(device)
