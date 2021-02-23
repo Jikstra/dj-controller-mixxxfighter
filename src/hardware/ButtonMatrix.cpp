@@ -31,17 +31,29 @@ void ButtonMatrix::setupColumn(int column_pin) {
   pinMode(column_pin, INPUT_PULLUP); 
 }
 
-void ButtonMatrix::selectRow(int row_pin) {
+void ButtonMatrix::selectRow(int row_index) {
+  if (row_index > count_row_pins) {
+    return;
+  }
+  int row_pin = row_pins[row_index];
   pinMode(row_pin, OUTPUT);
   digitalWrite(row_pin, LOW);  
 }
 
-void ButtonMatrix::unselectRow(int row_pin) {
+void ButtonMatrix::unselectRow(int row_index) {
+  if (row_index > count_row_pins) {
+    return;
+  }
+  int row_pin = row_pins[row_index];
   setupRow(row_pin);
 }
 
 
-int ButtonMatrix::digitalReadColumn(int column_pin) {
+int ButtonMatrix::digitalReadColumn(int column_index) {
+  if (column_index > count_column_pins) {
+    return;
+  }
+  int column_pin = column_pins[column_index];
   pinMode(column_pin, INPUT_PULLUP);
   int val = !digitalRead(column_pin);
   pinMode(column_pin, INPUT);

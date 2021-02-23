@@ -14,8 +14,8 @@ class ButtonMatrix : public BaseComponent {
     void setup();
     void setupRow(int row_pin);
     void setupColumn(int column_pin);
-    void selectRow(int row_pin);
-    void unselectRow(int row_pin);
-    int digitalReadColumn(int column_pin);
+    void selectRow(int row_index);
+    void unselectRow(int row_index);
+    int digitalReadColumn(int column_index);
     void process();
 };

@@ -3,3 +3,4 @@
 #include "constants.h"
 
 #include "hardware/LEDMatrix.h"
+#include "hardware/ButtonMatrix.h"
