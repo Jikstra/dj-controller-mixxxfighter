@@ -19,12 +19,14 @@ function engineGetValue(key) {
 
 var MixxxFighter = {};
 MixxxFighter.channel = 0
+MixxxFighter.modifierPage = 0
 MixxxFighter.shift = false
 MixxxFighter.focusSidebar = false
 
 MixxxFighter.init = function(id, debugging) {
   DBG("Hello from MixxxFighter!");
-  switchChannel(0);
+  switchChannel(MixxxFighter.channel);
+  switchModifierPage(MixxxFighter.modifierPage);
 }
 
 function switchChannel(channel) {
@@ -98,6 +100,27 @@ MixxxFighter.playButton = function(_channel, control, value, status, group) {
       engineSetValue('cue_default', 0);
     } 
   }
+}
+
+function switchModifierPage(pageIndex) {
+  let previousPage = MixxxFighter.modifierPage
+  midi.sendShortMsg(0x80, 0x32 + previousPage, 0x1) 
+  MixxxFighter.modifierPage = pageIndex
+  midi.sendShortMsg(0x90, 0x32 + pageIndex, 0x1) 
+  DBG("Switched modifier page from " + String(previousPage) + " to " + String(pageIndex))
+}
+
+MixxxFighter.modifierPageOneButton = function (_channel, control, value, status, group) {
+  value == BUTTON_PRESSED && switchModifierPage(0)
+}
+MixxxFighter.modifierPageTwoButton = function (_channel, control, value, status, group) {
+  value == BUTTON_PRESSED && switchModifierPage(1)
+}
+MixxxFighter.modifierPageThreeButton = function (_channel, control, value, status, group) {
+  value == BUTTON_PRESSED && switchModifierPage(2)
+}
+MixxxFighter.modifierPageFourButton = function (_channel, control, value, status, group) {
+  value == BUTTON_PRESSED && switchModifierPage(3)
 }
 
 MixxxFighter.syncButton = function(channel, control, value, status, group) {

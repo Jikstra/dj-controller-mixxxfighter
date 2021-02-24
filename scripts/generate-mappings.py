@@ -85,4 +85,9 @@ if __name__ == '__main__':
 
     button("shiftButton", "Shift button", C['MIDI_CTRL_SHIFT'])
 
+    button("modifierPageOneButton", "Switch to modifier page one", C['MIDI_CTRL_MODIFIER_PAGE_ONE'])
+    button("modifierPageTwoButton", "Switch to modifier page two", C['MIDI_CTRL_MODIFIER_PAGE_TWO'])
+    button("modifierPageThreeButton", "Switch to modifier page three", C['MIDI_CTRL_MODIFIER_PAGE_THREE'])
+    button("modifierPageFourButton", "Switch to modifier page four", C['MIDI_CTRL_MODIFIER_PAGE_FOUR'])
+
     print(footer())
