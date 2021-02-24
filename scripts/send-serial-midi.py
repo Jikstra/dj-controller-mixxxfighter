@@ -11,9 +11,9 @@ def sendMidi(device, command, channel, note, value):
 
 def help():
     print ("""
-send-midi: <device> <command> <channel> <note> <value>
+send-serial-midi: <device> <command> <channel> <note> <value>
 
-Example: send-midi /dev/ttyUSB0 0x9 0 127 1""")
+Example: send-serial-midi /dev/ttyUSB0 0x9 0 127 1""")
 
 
 def string_to_int(string):
