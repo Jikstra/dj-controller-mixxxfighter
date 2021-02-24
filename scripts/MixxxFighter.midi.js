@@ -27,6 +27,11 @@ MixxxFighter.init = function(id, debugging) {
   DBG("Hello from MixxxFighter!");
   switchChannel(MixxxFighter.channel);
   switchModifierPage(MixxxFighter.modifierPage);
+  for (let i = 1; i < 5; i++) {
+    let group = '[Channel' + String(i) + ']'
+    engine.setValue(group, 'quantize', 1) 
+    engine.setValue(group, 'sync_enabled', 1)
+  }
 }
 
 function switchChannel(channel) {
@@ -39,19 +44,43 @@ function switchChannel(channel) {
 }
 
 MixxxFighter.channelOneButton = function(channel, control, value, status, group) {
-  value == BUTTON_RELEASED && switchChannel(0)
+  if (value == BUTTON_RELEASED) {
+    if (MixxxFighter.shift) {
+      engine.setValue('[Channel1]', 'CloneFromDeck', MixxxFighter.channel + 1)
+    } else {
+      switchChannel(0)
+    }
+  }
 }
 
 MixxxFighter.channelTwoButton = function(channel, control, value, status, group) {
-  value == BUTTON_RELEASED && switchChannel(1)
+  if (value == BUTTON_RELEASED) {
+    if (MixxxFighter.shift) {
+      engine.setValue('[Channel2]', 'CloneFromDeck', MixxxFighter.channel + 1)
+    } else {
+      switchChannel(1)
+    }
+  }
 }
 
 MixxxFighter.channelThreeButton = function(channel, control, value, status, group) {
-  value == BUTTON_RELEASED && switchChannel(2)
+  if (value == BUTTON_RELEASED) {
+    if (MixxxFighter.shift) {
+      engine.setValue('[Channel3]', 'CloneFromDeck', MixxxFighter.channel + 1)
+    } else {
+      switchChannel(2)
+    }
+  }
 }
 
 MixxxFighter.channelFourButton = function(channel, control, value, status, group) {
-  value == BUTTON_RELEASED && switchChannel(3)
+  if (value == BUTTON_RELEASED) {
+    if (MixxxFighter.shift) {
+      engine.setValue('[Channel4]', 'CloneFromDeck', MixxxFighter.channel + 1)
+    } else {
+      switchChannel(3)
+    }
+  }
 }
 
 
@@ -72,7 +101,6 @@ MixxxFighter.downButton = function(channel, control, value, status, group) {
 
 MixxxFighter.rightButton = function(channel, control, value, status, group) {
   if (value != BUTTON_RELEASED) return;
-  engine.setValue('[Library]', 'GoToItem', 1);
   engineSetValue('LoadSelectedTrack', 1);
 }
 
@@ -101,6 +129,60 @@ MixxxFighter.playButton = function(_channel, control, value, status, group) {
     } 
   }
 }
+
+MixxxFighter.slowerButton = function(_channel, control, value, status, group) {
+  if (value == BUTTON_PRESSED) {
+    if (MixxxFighter.shift) {
+      engineSetValue('rate_temp_down_small', 1);
+    } else {
+      engineSetValue('rate_temp_down', 1);
+    }
+  } else { 
+    if (engine.getValue(MixxxFighter.group, 'rate_temp_down') === 1) {
+      engineSetValue('rate_temp_down', 0)
+    }
+    if (engine.getValue(MixxxFighter.group, 'rate_temp_down_small') === 1) {
+      engineSetValue('rate_temp_down_small', 0)
+    }
+    if (engine.getValue(MixxxFighter.group, 'play') !== 0) {
+      engineSetValue('beats_translate_match_alignment', 1)
+    }
+  }
+}
+
+MixxxFighter.fasterButton = function(_channel, control, value, status, group) {
+  if (value == BUTTON_PRESSED) {
+    if (MixxxFighter.shift) {
+      engineSetValue('rate_temp_up_small', 1);
+    } else {
+      engineSetValue('rate_temp_up', 1);
+    }
+  } else { 
+    if (engine.getValue(MixxxFighter.group, 'rate_temp_up') === 1) {
+      engineSetValue('rate_temp_up', 0)
+    }
+    if (engine.getValue(MixxxFighter.group, 'rate_temp_up_small') === 1) {
+      engineSetValue('rate_temp_up_small', 0)
+    }
+    if (engine.getValue(MixxxFighter.group, 'play') !== 0) {
+      engineSetValue('beats_translate_match_alignment', 1)
+    }
+  }
+}
+
+MixxxFighter.emergencyLoopButton = function(_channel, control, value, status, group) {
+  if (value == BUTTON_RELEASED) {
+    if (MixxxFighter.shift) {
+      engineSetValue('reloop_toggle', 1)
+    } else {
+      if (engine.getValue(MixxxFighter.group, 'beatloop_activate') == 1) {
+        engineSetValue('reloop_toggle', 1)
+      }
+      engineSetValue('beatloop_activate', 1)
+    } 
+  } 
+}
+
 
 function switchModifierPage(pageIndex) {
   let previousPage = MixxxFighter.modifierPage
@@ -187,4 +269,6 @@ MixxxFighter.loopEncoder = function(channel, control, value, status, group) {
 
 MixxxFighter.shutdown = function() {
   DBG("Goodbye from MixxxFighter!");
+  midi.sendShortMsg(0x80, MixxxFighter.channel, 0x1) 
+  midi.sendShortMsg(0x80, 0x32 + MixxxFighter.modifierPage, 0x1) 
 }

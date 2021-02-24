@@ -81,7 +81,10 @@ if __name__ == '__main__':
     button("downButton",  "Down button",  C['MIDI_CTRL_DOWN'])
     button("rightButton", "Right button", C['MIDI_CTRL_RIGHT'])
 
-    button("playButton", "Play button", C['MIDI_CTRL_PLAY'])
+    button("playButton",          "Play button", C['MIDI_CTRL_PLAY'])
+    button("slowerButton",        "Make deck temporary slower (beatmatching)", C['MIDI_CTRL_SLOWER'])
+    button("fasterButton",        "Make deck temporary faster (beatmatching)", C['MIDI_CTRL_FASTER'])
+    button("emergencyLoopButton", "Set emergency loop", C['MIDI_CTRL_EMERGENCY_LOOP'])
 
     button("shiftButton", "Shift button", C['MIDI_CTRL_SHIFT'])
 
