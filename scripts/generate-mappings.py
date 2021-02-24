@@ -88,6 +88,15 @@ if __name__ == '__main__':
 
     button("shiftButton", "Shift button", C['MIDI_CTRL_SHIFT'])
 
+    button("modifierOneButton",   "Modifier one button",   C['MIDI_CTRL_MODIFIER_ONE'])
+    button("modifierTwoButton",   "Modifier two button",   C['MIDI_CTRL_MODIFIER_TWO'])
+    button("modifierThreeButton", "Modifier three button", C['MIDI_CTRL_MODIFIER_THREE'])
+    button("modifierFourButton",  "Modifier four button",  C['MIDI_CTRL_MODIFIER_FOUR'])
+    button("modifierFiveButton",  "Modifier five button",  C['MIDI_CTRL_MODIFIER_FIVE'])
+    button("modifierSixButton",   "Modifier six button",   C['MIDI_CTRL_MODIFIER_SIX'])
+    button("modifierSevenButton", "Modifier seven button", C['MIDI_CTRL_MODIFIER_SEVEN'])
+    button("modifierEightButton", "Modifier eight button", C['MIDI_CTRL_MODIFIER_EIGHT'])
+
     button("modifierPageOneButton", "Switch to modifier page one", C['MIDI_CTRL_MODIFIER_PAGE_ONE'])
     button("modifierPageTwoButton", "Switch to modifier page two", C['MIDI_CTRL_MODIFIER_PAGE_TWO'])
     button("modifierPageThreeButton", "Switch to modifier page three", C['MIDI_CTRL_MODIFIER_PAGE_THREE'])
