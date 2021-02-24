@@ -1,15 +1,15 @@
 #include "main.h"
 
 const int CountLEDMatrixColumns = 4;
-int LEDMatrixColumns[CountLEDMatrixColumns] = { A2, A3, A4, A5};
+int LEDMatrixColumns[CountLEDMatrixColumns] = { A5, A4, A3, A2 };
 const int CountLEDMatrixRows = 2;
-int LEDMatrixRows[CountLEDMatrixRows] = { A0, A1 };
+int LEDMatrixRows[CountLEDMatrixRows] = { A1, A0 };
 LEDMatrix* led_matrix = new LEDMatrix(LEDMatrixColumns, CountLEDMatrixColumns, LEDMatrixRows, CountLEDMatrixRows);
 
-const int CountButtonMatrixColumns = 6;
-int ButtonMatrixColumns[CountButtonMatrixColumns] = { 2, 3, 4, 5, 6, 7 };
-const int CountButtonMatrixRows = 4;
-int ButtonMatrixRows[CountButtonMatrixRows] = { 8, 9, 10, 11 };
+const int CountButtonMatrixColumns = 4;
+int ButtonMatrixColumns[CountButtonMatrixColumns] = { 8, 9, 10, 11 };
+const int CountButtonMatrixRows = 6;
+int ButtonMatrixRows[CountButtonMatrixRows] = { 2, 3, 4, 5, 6, 7 };
 
 ButtonMatrix* button_matrix = new ButtonMatrix(
   ButtonMatrixColumns,
@@ -19,12 +19,12 @@ ButtonMatrix* button_matrix = new ButtonMatrix(
 );
 
 int button_midi_control_map[][6] = {
-  {MIDI_CTRL_CH1, MIDI_CTRL_CH2, MIDI_CTRL_CH3, MIDI_CTRL_CH4},
-  {MIDI_CTRL_LEFT, MIDI_CTRL_UP, MIDI_CTRL_DOWN, MIDI_CTRL_RIGHT},
-  {MIDI_CTRL_PLAY, MIDI_CTRL_SLOWER, MIDI_CTRL_FASTER, MIDI_CTRL_EMERGENCY_LOOP},
-  {MIDI_CTRL_MODIFIER_ONE, MIDI_CTRL_MODIFIER_TWO, MIDI_CTRL_MODIFIER_THREE, MIDI_CTRL_MODIFIER_FOUR},
+  {MIDI_CTRL_MODIFIER_PAGE_ONE, MIDI_CTRL_MODIFIER_PAGE_TWO, MIDI_CTRL_MODIFIER_PAGE_THREE, MIDI_CTRL_MODIFIER_PAGE_FOUR},
   {MIDI_CTRL_MODIFIER_FIVE, MIDI_CTRL_MODIFIER_SIX, MIDI_CTRL_MODIFIER_SEVEN, MIDI_CTRL_MODIFIER_EIGHT},
-  {MIDI_CTRL_MODIFIER_PAGE_ONE, MIDI_CTRL_MODIFIER_PAGE_TWO, MIDI_CTRL_MODIFIER_PAGE_THREE, MIDI_CTRL_MODIFIER_PAGE_FOUR}
+  {MIDI_CTRL_MODIFIER_ONE, MIDI_CTRL_MODIFIER_TWO, MIDI_CTRL_MODIFIER_THREE, MIDI_CTRL_MODIFIER_FOUR},
+  {MIDI_CTRL_PLAY, MIDI_CTRL_SLOWER, MIDI_CTRL_FASTER, MIDI_CTRL_EMERGENCY_LOOP},
+  {MIDI_CTRL_LEFT, MIDI_CTRL_UP, MIDI_CTRL_DOWN, MIDI_CTRL_RIGHT},
+  {MIDI_CTRL_CH1, MIDI_CTRL_CH2, MIDI_CTRL_CH3, MIDI_CTRL_CH4}
 };
 
 int _led_matrix_tick = 0;
