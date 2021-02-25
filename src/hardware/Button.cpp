@@ -1,21 +1,29 @@
 #include "Button.h"
 
-bool isBouncing(unsigned long* last_flake_millis) {
-  unsigned long current_flake = millis();
-  //println("current_flake %lu last_flake %lu", current_flake, *last_flake_millis);
-  bool returnValue = current_flake - *last_flake_millis < 50;
-  *last_flake_millis = current_flake;
-  return returnValue;  
+bool isBouncing(int pin_value, int* last_bounce_pin_value, unsigned long* last_bounce_millis) {
+  if (*last_bounce_pin_value == pin_value) {
+    return false;
+  }
+  unsigned long current_flake_millis = millis();
+  //println("current_flake %lu last_flake %lu", current_flake, *last_bounce_millis);
+  bool isBouncing = (current_flake_millis - *last_bounce_millis) < 50 ? true : false;
+  if (isBouncing) {
+    *last_bounce_millis = current_flake_millis;
+  }
+  *last_bounce_pin_value = pin_value;
+  return isBouncing;
 }
 
 
-ButtonState buttonState(int pin_value, bool* was_pressed,  unsigned long* last_flake_millis) {
+ButtonState buttonState(int pin_value, bool* was_pressed,  unsigned long* last_bounce_millis, int* last_bounce_pin_value) {
   if(pin_value == LOW && *was_pressed == false) {
-    if(isBouncing(last_flake_millis)) return ButtonState::Unchanged;
+    if(isBouncing(pin_value, last_bounce_pin_value, last_bounce_millis)) return ButtonState::Unchanged;
     *was_pressed = true;
     return ButtonState::Pressed;
   } else if(pin_value == HIGH && *was_pressed == true){
-    if(isBouncing(last_flake_millis)) return ButtonState::Unchanged;
+    bool is_bouncing = isBouncing(pin_value, last_bounce_pin_value, last_bounce_millis);
+    DBG("isBouncing %d", isBouncing);
+    if(is_bouncing) return ButtonState::Unchanged;
     *was_pressed = false;
     return ButtonState::Released;
   } else {
@@ -66,7 +74,7 @@ void Button::_process(int pin_value) {
 }
 
 ButtonState Button::_buttonState(int pin_value) {
-  ButtonState button_state = buttonState(pin_value, &button_was_pressed, &button_last_flake);
+  ButtonState button_state = buttonState(pin_value, &button_was_pressed, &last_bounce_millis, &last_bounce_pin_value);
   return button_state;
 }
 
