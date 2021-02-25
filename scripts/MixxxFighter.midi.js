@@ -11,6 +11,13 @@ function groupFromChannelIndex(channelIndex) {
   return '[Channel' + String(channelIndex) + ']';
 }
 
+function clearLEDS() {
+  for (var i = 0; i < 5; i++) {
+    midi.sendShortMsg(0x80, i, 0x1);
+    midi.sendShortMsg(0x80, 0x32 + i, 0x1);
+  }
+}
+
 
 var MixxxFighter = {};
 MixxxFighter.selectedChannel = [false, false, false, false];
@@ -21,6 +28,7 @@ MixxxFighter.buttonPressDuringChannelSelect = 0;
 
 MixxxFighter.init = function(id, debugging) {
   DBG("Hello from MixxxFighter!");
+  clearLEDS();
   switchChannel(0);
   switchModifierPage(0);
   for (var i = 1; i < 5; i++) {
@@ -403,6 +411,5 @@ MixxxFighter.modifierPageFourButton  = switchModifierPageButton(3)
 
 MixxxFighter.shutdown = function() {
   DBG("Goodbye from MixxxFighter!");
-  midi.sendShortMsg(0x80, MixxxFighter.selectedChannel, 0x1);
-  midi.sendShortMsg(0x80, 0x32 + MixxxFighter.modifierPage, 0x1);
+  clearLEDS();
 }

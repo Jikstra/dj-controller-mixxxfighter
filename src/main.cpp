@@ -43,13 +43,11 @@ void led_matrix_tick() {
   //DBG("_led_matrix_tick = %i %i:%i", _led_matrix_tick, row_index, column_index);
   
   bool led_state = led_matrix_state[row_index][column_index];
+  led_matrix->turnOff();
+  led_matrix->selectRow(row_index);
   if (led_state == true) {
-    led_matrix->selectRow(row_index);
     led_matrix->turnOn(column_index);
-  } else if (row_index == led_matrix->selected_row_index && column_index == led_matrix->turned_on_column_index) {
-    led_matrix->turnOff();
-  }
-  
+  }  
   _led_matrix_tick = _led_matrix_tick + 1;
   if (_led_matrix_tick > 7) _led_matrix_tick = 0;
 }
