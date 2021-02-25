@@ -8,14 +8,16 @@ function DBG(str) {
 
 
 function groupFromChannelIndex(channelIndex) {
-  return '[Channel' + String(i) + ']';
+  return '[Channel' + String(channelIndex) + ']';
 }
 
 
 var MixxxFighter = {};
-MixxxFighter.selectedChannel = [0, 0, 0, 0];
-MixxxFighter.modifierPage = 0
-MixxxFighter.shift = false
+MixxxFighter.selectedChannel = [false, false, false, false];
+MixxxFighter.activeChannel = -1;
+MixxxFighter.modifierPage = -1;
+MixxxFighter.shift = false;
+MixxxFighter.buttonPressDuringChannelSelect = 0;
 
 MixxxFighter.init = function(id, debugging) {
   DBG("Hello from MixxxFighter!");
@@ -29,21 +31,24 @@ MixxxFighter.init = function(id, debugging) {
 }
 
 function selectChannel(channelIndex) {
+  DBG("Select channel " + channelIndex);
   midi.sendShortMsg(0x90, channelIndex, 0x1);
-  MixxxFighter.selectedChannel[channelIndex] = 2;
+  MixxxFighter.selectedChannel[channelIndex] = true;
+  DBG(MixxxFighter.selectedChannel);
 }
 
 function unselectChannel(channelIndex) {
+  DBG("Unselect channel " + channelIndex);
   midi.sendShortMsg(0x80, channelIndex, 0x1);
-  MixxxFighter.selectedChannel[channelIndex] = 0;
+  MixxxFighter.selectedChannel[channelIndex] = false;
+  DBG(MixxxFighter.selectedChannel);
 }
 
 function switchChannel(channelIndex) {
-  forEachSelectedChannel(function (selectedChannelIndex) {
-    selectedChannelIndex !== channelIndex && unselectChannel(selectedChannelIndex);
-  })
-  midi.sendShortMsg(0x90, channelIndex, 0x1);
-  MixxxFighter.selectedChannel[channelIndex] = 1;
+  DBG("Switch channel from " + MixxxFighter.activeChannel + " to " + channelIndex);
+  midi.sendShortMsg(0x80, MixxxFighter.activeChannel, 0x1);
+  MixxxFighter.activeChannel = channelIndex;
+  midi.sendShortMsg(0x90, MixxxFighter.activeChannel, 0x1);
 }
 
 function countSelectedChannel() {
@@ -52,23 +57,50 @@ function countSelectedChannel() {
   return i;
 }
 
+function hasSelectedNonActiveChannel() {
+  for (var i = 0; i < MixxxFighter.selectedChannel.length; i++) {
+    if (MixxxFighter.selectedChannel[i] === true) return true;
+  }
+  return false;
+}
+
 
 function forEachSelectedChannel(cb) {
-  for (var i = 0; i < MixxxFighter.selectedChannel.length; i++) {
-    MixxxFighter.selectedChannel[i] > 0 && cb(i, groupFromChannelIndex(i))
+  var _hasSelectedNonActiveChannel = hasSelectedNonActiveChannel();
+  if(_hasSelectedNonActiveChannel) {
+    for (var i = 0; i < MixxxFighter.selectedChannel.length; i++) {
+      MixxxFighter.selectedChannel[i] == true && cb(i, groupFromChannelIndex(i + 1));
+    }
+  } else {
+    cb(i, groupFromChannelIndex(MixxxFighter.activeChannel + 1));
   }
 }
 
 function engineSetValueForSelectedChannels(key, value) {
+  DBG("engineSetValueForSelectedChannels Hello" + key + " " + value);
   forEachSelectedChannel(function (i, group) {
+    DBG("engineSetValueForSelectedChannels " + String(i) + " " + key + " " + value);
     engine.setValue(group, key, value)
   });
 }
 
-function engineSetValueForSelectedChannelsWhere(key, value, whereCb) {
-  forEachSelectedChannel(function (i, group) {
-    whereCb(group, i) === true && engine.setValue(group, key, value)
-  });
+function registerButtonPressDuringChannelSelect() {
+  if (hasSelectedNonActiveChannel()) {
+    MixxxFighter.buttonPressDuringChannelSelect = true;
+  }
+}
+
+function unregisterButtonPressDuringChannelSelect() {
+  if (!hasSelectedNonActiveChannel()) {
+    MixxxFighter.buttonPressDuringChannelSelect = false;
+  }
+}
+
+function Button(cb) {
+  return function (channel, control, value, status, group) {
+    registerButtonPressDuringChannelSelect();
+    cb(channel, control, value, status, group);
+  }
 }
 
 function channelButton(buttonChannelIndex, value) {
@@ -78,11 +110,13 @@ function channelButton(buttonChannelIndex, value) {
     } else if (value == BUTTON_RELEASED) {
       unselectChannel(buttonChannelIndex);
       if (MixxxFighter.shift) {
-        MixxxFighter.pressedChannel[buttonChannelIndex] = false
-        engine.setValue(groupFromChannelIndex(buttonChannelIndex), 'CloneFromDeck', MixxxFighter.selectedChannel + 1);
-      } else if (countSelectedChannel() <= 1) {
+        MixxxFighter.selectChannel[buttonChannelIndex] = false
+        engine.setValue(groupFromChannelIndex(buttonChannelIndex), 'CloneFromDeck', buttonChannelIndex + 1);
+      } else if (MixxxFighter.buttonPressDuringChannelSelect === false) {
         switchChannel(buttonChannelIndex);
-        DBG("Switched from " + String(previousChannel) + " to " + String(channel));
+      }
+      if (hasSelectedNonActiveChannel() === false) {
+        unregisterButtonPressDuringChannelSelect();
       }
     }
   }
@@ -106,9 +140,9 @@ MixxxFighter.downButton = function(channel, control, value, status, group) {
   value == BUTTON_RELEASED && engine.setValue('[Library]', 'MoveDown', 1);
 }
 
-MixxxFighter.rightButton = function(channel, control, value, status, group) {
+MixxxFighter.rightButton = Button(function(channel, control, value, status, group) {
   value == BUTTON_RELEASED && engineSetValueForSelectedChannels('LoadSelectedTrack', 1);
-}
+})
 
 MixxxFighter.shiftButton = function(channel, control, value, status, group) {
   if (value == BUTTON_PRESSED) {
@@ -120,7 +154,7 @@ MixxxFighter.shiftButton = function(channel, control, value, status, group) {
   }
 }
 
-MixxxFighter.playButton = function(_channel, control, value, status, group) {
+MixxxFighter.playButton = Button(function(_channel, control, value, status, group) {
   if (value == BUTTON_PRESSED) {
     if (MixxxFighter.shift === true) {
       engineSetValueForSelectedChannels('cue_default', 1);
@@ -135,9 +169,9 @@ MixxxFighter.playButton = function(_channel, control, value, status, group) {
       engineSetValueForSelectedChannels('cue_default', 0);
     } 
   }
-}
+});
 
-MixxxFighter.slowerButton = function(_channel, control, value, status, group) {
+MixxxFighter.slowerButton = Button(function(_channel, control, value, status, group) {
   if (value == BUTTON_PRESSED) {
     if (MixxxFighter.shift) {
       engineSetValueForSelectedChannels('rate_temp_down_small', 1);
@@ -157,9 +191,9 @@ MixxxFighter.slowerButton = function(_channel, control, value, status, group) {
       }
     });
   }
-}
+});
 
-MixxxFighter.fasterButton = function(_channel, control, value, status, group) {
+MixxxFighter.fasterButton = Button(function(_channel, control, value, status, group) {
   if (value == BUTTON_PRESSED) {
     if (MixxxFighter.shift) {
       engineSetValueForSelectedChannels('rate_temp_up_small', 1);
@@ -179,9 +213,9 @@ MixxxFighter.fasterButton = function(_channel, control, value, status, group) {
       }
     })
   }
-}
+});
 
-MixxxFighter.emergencyLoopButton = function(_channel, control, value, status, group) {
+MixxxFighter.emergencyLoopButton = Button(function(_channel, control, value, status, group) {
   if (value == BUTTON_RELEASED) {
     if (MixxxFighter.shift) {
       engineSetValueForSelectedChannels('reloop_toggle', 1);
@@ -194,7 +228,7 @@ MixxxFighter.emergencyLoopButton = function(_channel, control, value, status, gr
       });
     } 
   } 
-}
+});
 
 function hotcuePageTwo(hotcueNumber, value) {
   if (MixxxFighter.shift) {
@@ -212,7 +246,7 @@ function hotcuePageThree(hotcueNumber, value) {
   }
 }
 
-MixxxFighter.modifierOneButton = function(_channel, control, value, status, group) {
+MixxxFighter.modifierOneButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
     if (MixxxFighter.shift) {
       value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatjump_size', Math.floor(engine.getValue(MixxxFighter.group, 'beatjump_size') / 2));
@@ -225,10 +259,10 @@ MixxxFighter.modifierOneButton = function(_channel, control, value, status, grou
     hotcuePageThree(1, value);
   } else if (MixxxFighter.modifierPage == 3) {
   }
-}
+});
 
 
-MixxxFighter.modifierTwoButton = function(_channel, control, value, status, group) {
+MixxxFighter.modifierTwoButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
     if (MixxxFighter.shift) {
       value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
@@ -243,9 +277,9 @@ MixxxFighter.modifierTwoButton = function(_channel, control, value, status, grou
     hotcuePageThree(2, value);
   } else if (MixxxFighter.modifierPage == 3) {
   }
-}
+});
 
-MixxxFighter.modifierThreeButton = function(_channel, control, value, status, group) {
+MixxxFighter.modifierThreeButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
     if (MixxxFighter.shift) {
       value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
@@ -260,9 +294,9 @@ MixxxFighter.modifierThreeButton = function(_channel, control, value, status, gr
     hotcuePageThree(3, value);
   } else if (MixxxFighter.modifierPage == 3) {
   }
-}
+});
 
-MixxxFighter.modifierFourButton = function(_channel, control, value, status, group) {
+MixxxFighter.modifierFourButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
     if (MixxxFighter.shift) {
       value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
@@ -277,9 +311,9 @@ MixxxFighter.modifierFourButton = function(_channel, control, value, status, gro
     hotcuePageThree(4, value);
   } else if (MixxxFighter.modifierPage == 3) {
   }
-}
+});
 
-MixxxFighter.modifierFiveButton = function(_channel, control, value, status, group) {
+MixxxFighter.modifierFiveButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
     if (MixxxFighter.shift) {
       value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
@@ -294,9 +328,9 @@ MixxxFighter.modifierFiveButton = function(_channel, control, value, status, gro
     hotcuePageThree(5, value);
   } else if (MixxxFighter.modifierPage == 3) {
   }
-}
+});
 
-MixxxFighter.modifierSixButton = function(_channel, control, value, status, group) {
+MixxxFighter.modifierSixButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
     if (MixxxFighter.shift) {
       value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
@@ -311,9 +345,9 @@ MixxxFighter.modifierSixButton = function(_channel, control, value, status, grou
     hotcuePageThree(6, value);
   } else if (MixxxFighter.modifierPage == 3) {
   }
-}
+});
 
-MixxxFighter.modifierSevenButton = function(_channel, control, value, status, group) {
+MixxxFighter.modifierSevenButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
     if (MixxxFighter.shift) {
       value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
@@ -328,9 +362,9 @@ MixxxFighter.modifierSevenButton = function(_channel, control, value, status, gr
     hotcuePageThree(7, value);
   } else if (MixxxFighter.modifierPage == 3) {
   }
-}
+});
 
-MixxxFighter.modifierEightButton = function(_channel, control, value, status, group) {
+MixxxFighter.modifierEightButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
     if (MixxxFighter.shift) {
       value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
@@ -345,16 +379,20 @@ MixxxFighter.modifierEightButton = function(_channel, control, value, status, gr
     hotcuePageThree(8, value);
   } else if (MixxxFighter.modifierPage == 3) {
   }
+});
+
+function switchModifierPage(pageIndex) {
+  var previousPage = MixxxFighter.modifierPage;
+  midi.sendShortMsg(0x80, 0x32 + previousPage, 0x1);
+  MixxxFighter.modifierPage = pageIndex;
+  midi.sendShortMsg(0x90, 0x32 + pageIndex, 0x1);
+  DBG("Switched modifier page from " + String(previousPage) + " to " + String(pageIndex));
 }
 
 function switchModifierPageButton(pageIndex) {
   return function(channel, control, value, status, group) {
     if (value != BUTTON_PRESSED) return;
-    var previousPage = MixxxFighter.modifierPage;
-    midi.sendShortMsg(0x80, 0x32 + previousPage, 0x1);
-    MixxxFighter.modifierPage = pageIndex;
-    midi.sendShortMsg(0x90, 0x32 + pageIndex, 0x1);
-    DBG("Switched modifier page from " + String(previousPage) + " to " + String(pageIndex));
+    switchModifierPage(pageIndex);
   }
 }
 
