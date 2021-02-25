@@ -110,8 +110,8 @@ function channelButton(buttonChannelIndex, value) {
     } else if (value == BUTTON_RELEASED) {
       unselectChannel(buttonChannelIndex);
       if (MixxxFighter.shift) {
-        MixxxFighter.selectChannel[buttonChannelIndex] = false
-        engine.setValue(groupFromChannelIndex(buttonChannelIndex), 'CloneFromDeck', buttonChannelIndex + 1);
+        MixxxFighter.selectedChannel[buttonChannelIndex] = false
+        engine.setValue(groupFromChannelIndex(buttonChannelIndex + 1), 'CloneFromDeck', MixxxFighter.activeChannel + 1);
       } else if (MixxxFighter.buttonPressDuringChannelSelect === false) {
         switchChannel(buttonChannelIndex);
       }
