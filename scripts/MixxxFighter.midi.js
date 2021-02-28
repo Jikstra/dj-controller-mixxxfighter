@@ -24,18 +24,18 @@ MixxxFighter.selectedChannel = [false, false, false, false];
 MixxxFighter.activeChannel = -1;
 MixxxFighter.modifierPage = -1;
 MixxxFighter.shift = false;
-MixxxFighter.buttonPressDuringChannelSelect = 0;
+MixxxFighter.buttonPressDuringChannelSelect = false;
 
 MixxxFighter.init = function(id, debugging) {
   DBG("Hello from MixxxFighter!");
-  clearLEDS();
-  switchChannel(0);
-  switchModifierPage(0);
+  //clearLEDS();
   for (var i = 1; i < 5; i++) {
     var group = groupFromChannelIndex(i);
     engine.setValue(group, 'quantize', 1);
     engine.setValue(group, 'sync_enabled', 1);
   }
+  switchChannel(0);
+  switchModifierPage(0);
 }
 
 function selectChannel(channelIndex) {
@@ -54,7 +54,9 @@ function unselectChannel(channelIndex) {
 
 function switchChannel(channelIndex) {
   DBG("Switch channel from " + MixxxFighter.activeChannel + " to " + channelIndex);
-  midi.sendShortMsg(0x80, MixxxFighter.activeChannel, 0x1);
+  if (MixxxFighter.activeChannel !== -1) {
+    midi.sendShortMsg(0x80, MixxxFighter.activeChannel, 0x1);
+  }
   MixxxFighter.activeChannel = channelIndex;
   midi.sendShortMsg(0x90, MixxxFighter.activeChannel, 0x1);
 }
@@ -118,9 +120,13 @@ function channelButton(buttonChannelIndex, value) {
     } else if (value == BUTTON_RELEASED) {
       unselectChannel(buttonChannelIndex);
       if (MixxxFighter.shift) {
-        MixxxFighter.selectedChannel[buttonChannelIndex] = false
-        engine.setValue(groupFromChannelIndex(buttonChannelIndex + 1), 'CloneFromDeck', MixxxFighter.activeChannel + 1);
-      } else if (MixxxFighter.buttonPressDuringChannelSelect === false) {
+        if (MixxxFighter.buttonPressDuringChannelSelect === false) {
+          engine.setValue(groupFromChannelIndex(buttonChannelIndex + 1), 'CloneFromDeck', MixxxFighter.activeChannel + 1);
+          switchChannel(MixxxFighter.activeChannel);
+          return;
+        }
+      }
+      if (MixxxFighter.buttonPressDuringChannelSelect === false) {
         switchChannel(buttonChannelIndex);
       }
       if (hasSelectedNonActiveChannel() === false) {
@@ -136,20 +142,57 @@ MixxxFighter.channelThreeButton = channelButton(2);
 MixxxFighter.channelFourButton = channelButton(3);
 
 
-MixxxFighter.leftButton = function(channel, control, value, status, group) {
-  value == BUTTON_RELEASED && engine.setValue('[Library]', MixxxFighter.shift === false ? 'MoveFocusForward' : 'MoveFocusBackward', 1);
-}
+MixxxFighter.leftButton = Button(function(channel, control, value, status, group) {
+  if (MixxxFighter.shift && value == BUTTON_RELEASED) {
+    engine.setValue('[Library]', 'MoveUp', 1);
+    var firstPlayPosition = -1;
+    forEachSelectedChannel(function (i, group) {
+      engine.setValue(group, 'stop', 1);
+      if (firstPlayPosition === -1) {
+        firstPlayPosition = engine.getValue(group, 'playposition');
+      }
+      engine.setValue(group, 'LoadSelectedTrackAndPlay', 1);
+      engine.setValue(group, 'playposition', firstPlayPosition);
+      engine.setValue(group, 'quantize', 1);
+      engine.setValue(group, 'sync_enabled', 1);
+    })
+  }
+});
 
-MixxxFighter.upButton = function(channel, control, value, status, group) {
-  value == BUTTON_RELEASED && engine.setValue('[Library]', 'MoveUp', 1);
-}
+MixxxFighter.upButton = Button(function(channel, control, value, status, group) {
+  if (MixxxFighter.shift && value == BUTTON_PRESSED) {
+    engineSetValueForSelectedChannels('cue_default', 1);
+  } else if (value == BUTTON_RELEASED) {
+    forEachSelectedChannel(function (i, group) {
+      if (engine.getValue(group, 'cue_default') === 1) {
+        engine.setValue(group, 'cue_default', 0);
+      }
+    });
+  }
+});
 
-MixxxFighter.downButton = function(channel, control, value, status, group) {
-  value == BUTTON_RELEASED && engine.setValue('[Library]', 'MoveDown', 1);
-}
+MixxxFighter.downButton = Button(function(channel, control, value, status, group) {
+  if (MixxxFighter.shift && value == BUTTON_RELEASED) {
+    forEachSelectedChannel(function (i, group) {
+      engine.setValue(group, 'play', !(engine.getValue(group, 'play'))); 
+    });
+  }
+});
 
 MixxxFighter.rightButton = Button(function(channel, control, value, status, group) {
-  value == BUTTON_RELEASED && engineSetValueForSelectedChannels('LoadSelectedTrack', 1);
+  if (MixxxFighter.shift && value == BUTTON_RELEASED) {
+    engine.setValue('[Library]', 'MoveDown', 1);
+    var firstPlayPosition = -1;
+    forEachSelectedChannel(function (i, group) {
+      engine.setValue(group, 'stop', 1);
+      if (firstPlayPosition === -1) {
+        firstPlayPosition = engine.getValue(group, 'playposition');
+      }
+      engine.setValue(group, 'LoadSelectedTrackAndPlay', 1);
+      engine.setValue(group, 'playposition', firstPlayPosition);
+      
+    })
+  }
 })
 
 MixxxFighter.shiftButton = function(channel, control, value, status, group) {
@@ -162,81 +205,37 @@ MixxxFighter.shiftButton = function(channel, control, value, status, group) {
   }
 }
 
-MixxxFighter.playButton = Button(function(_channel, control, value, status, group) {
-  if (value == BUTTON_PRESSED) {
-    if (MixxxFighter.shift === true) {
-      engineSetValueForSelectedChannels('cue_default', 1);
-    } else {
-      DBG("Play " + String(value));
-      forEachSelectedChannel(function (i, group) {
-        engine.setValue(group, 'play', !(engine.getValue(group, 'play'))); 
-      });
-    }
-  } else {
-    if (MixxxFighter.shift === true) {
-      engineSetValueForSelectedChannels('cue_default', 0);
-    } 
-  }
-});
-
-MixxxFighter.slowerButton = Button(function(_channel, control, value, status, group) {
-  if (value == BUTTON_PRESSED) {
-    if (MixxxFighter.shift) {
-      engineSetValueForSelectedChannels('rate_temp_down_small', 1);
-    } else {
-      engineSetValueForSelectedChannels('rate_temp_down', 1);
-    }
-  } else { 
-    forEachSelectedChannel(function (i, group) {
-      if (engine.getValue(group, 'rate_temp_down') === 1) {
-        engine.setValue(group, 'rate_temp_down', 0);
+function rateTempButton(key_rate, key_rate_perm) {
+  return Button(function(_channel, control, value, status, group) {
+    if (value == BUTTON_PRESSED) {
+      if (MixxxFighter.shift) {
+        forEachSelectedChannel(function (i, group) {
+          if (engine.getValue(group, 'sync_enabled') === 1) {
+            engine.setValue(group, 'sync_enabled', 0);
+          }
+          engine.setValue(group, key_rate_perm, 1);
+        })
+      } else {
+        engineSetValueForSelectedChannels(key_rate, 1);
       }
-      if (engine.getValue(group, 'rate_temp_down_small') === 1) {
-        engine.setValue(group, 'rate_temp_down_small', 0);
-      }
-      if (engine.getValue(group, 'play') !== 0) {
-        engine.setValue(group, 'beats_translate_match_alignment', 1);
-      }
-    });
-  }
-});
-
-MixxxFighter.fasterButton = Button(function(_channel, control, value, status, group) {
-  if (value == BUTTON_PRESSED) {
-    if (MixxxFighter.shift) {
-      engineSetValueForSelectedChannels('rate_temp_up_small', 1);
-    } else {
-      engineSetValueForSelectedChannels('rate_temp_up', 1);
-    }
-  } else { 
-    forEachSelectedChannel(function (i, group) {
-      if (engine.getValue(group, 'rate_temp_up') === 1) {
-        engine.setValue(group, 'rate_temp_up', 0);
-      }
-      if (engine.getValue(group, 'rate_temp_up_small') === 1) {
-        engine.setValue(group, 'rate_temp_up_small', 0);
-      }
-      if (engine.getValue(group, 'play') !== 0) {
-        engine.setValue(group, 'beats_translate_match_alignment', 1);
-      }
-    })
-  }
-});
-
-MixxxFighter.emergencyLoopButton = Button(function(_channel, control, value, status, group) {
-  if (value == BUTTON_RELEASED) {
-    if (MixxxFighter.shift) {
-      engineSetValueForSelectedChannels('reloop_toggle', 1);
     } else {
       forEachSelectedChannel(function (i, group) {
-        if (engine.getValue(group, 'beatloop_activate') == 1) {
-          engine.setValue(group, 'reloop_toggle', 1);
+        if (engine.getValue(group, key_rate) === 1) {
+          engine.setValue(group, key_rate, 0);
         }
-        engine.setValue(group, 'beatloop_activate', 1);
+
+        if (engine.getValue(group, 'play') !== 0) {
+          engine.setValue(group, 'beats_translate_match_alignment', 1);
+        }
       });
-    } 
-  } 
-});
+    }
+  })
+}
+
+MixxxFighter.playButton = rateTempButton('rate_temp_down', 'rate_perm_down_small');
+MixxxFighter.slowerButton = rateTempButton('rate_temp_down_small', 'rate_perm_down_small');
+MixxxFighter.fasterButton = rateTempButton('rate_temp_up_small', 'rate_perm_up_small');
+MixxxFighter.emergencyLoopButton = rateTempButton('rate_temp_up', 'rate_perm_up_small');
 
 function hotcuePageTwo(hotcueNumber, value) {
   if (MixxxFighter.shift) {
@@ -257,9 +256,9 @@ function hotcuePageThree(hotcueNumber, value) {
 MixxxFighter.modifierOneButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
     if (MixxxFighter.shift) {
-      value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatjump_size', Math.floor(engine.getValue(MixxxFighter.group, 'beatjump_size') / 2));
+      value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatjump_8_backward', 1);
     } else {
-      value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatjump_backward', 1);
+      value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatjump_32_backward', 1);
     }
   } else if (MixxxFighter.modifierPage == 1) {
     hotcuePageTwo(1, value);
@@ -273,9 +272,7 @@ MixxxFighter.modifierOneButton = Button(function(_channel, control, value, statu
 MixxxFighter.modifierTwoButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
     if (MixxxFighter.shift) {
-      value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
-	engine.setValue(group, 'beatjump_size', engine.getValue(group, 'beatjump_size') - 1);
-      })
+      value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatjump_4_backward', 1);
     } else {
       value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatjump_1_backward', 1);
     }
@@ -290,9 +287,7 @@ MixxxFighter.modifierTwoButton = Button(function(_channel, control, value, statu
 MixxxFighter.modifierThreeButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
     if (MixxxFighter.shift) {
-      value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
-        engine.setValue(group, 'beatjump_size', engine.getValue(group, 'beatjump_size') + 1);
-      })
+      value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatjump_4_forward', 1);
     } else {
       value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatjump_1_forward', 1);
     }
@@ -307,11 +302,9 @@ MixxxFighter.modifierThreeButton = Button(function(_channel, control, value, sta
 MixxxFighter.modifierFourButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
     if (MixxxFighter.shift) {
-      value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
-        engine.setValue(group, 'beatjump_size', Math.floor(engine.getValue(group, 'beatjump_size') * 2));
-      })
+      value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatjump_8_forward', 1);
     } else {
-      value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatjump_forward', 1);
+      value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatjump_32_forward', 1);
     }
   } else if (MixxxFighter.modifierPage == 1) {
     hotcuePageTwo(4, value);
@@ -321,15 +314,37 @@ MixxxFighter.modifierFourButton = Button(function(_channel, control, value, stat
   }
 });
 
-MixxxFighter.modifierFiveButton = Button(function(_channel, control, value, status, group) {
-  if (MixxxFighter.modifierPage == 0) {
+function beatLoop(size, value) { 
     if (MixxxFighter.shift) {
+      if (size == 1) {
+        value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
+          half_loop = Math.max(Math.floor(engine.getValue(group, 'beatloop_size') / 2), 1)
+          engine.setValue(group, 'beatloop_size', half_loop);
+        })
+        return;
+      }
+      if (size == 16) {
+        value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
+          double_loop = Math.floor(engine.getValue(group, 'beatloop_size') * 2)
+          engine.setValue(group, 'beatloop_size', double_loop);
+        })
+        return;
+      }
       value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
-        engine.setValue(group, 'beatloop_size', Math.floor(engine.getValue(group, 'beatloop_size') / 2));
+        engine.setValue(group, 'reloop_toggle', 1);
       })
     } else {
-      value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatloop_1_activate', 1);
+      value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
+        var activate = engine.getValue(group, 'beatloop_size') === size;
+        engine.setValue(group, 'beatloop_size', size);
+        engine.setValue(group, 'beatloop_activate', 1);
+      })
     }
+}
+
+MixxxFighter.modifierFiveButton = Button(function(_channel, control, value, status, group) {
+  if (MixxxFighter.modifierPage == 0) {
+    beatLoop(1, value);
   } else if (MixxxFighter.modifierPage == 1) {
     hotcuePageTwo(5, value);
   } else if (MixxxFighter.modifierPage == 2) {
@@ -340,13 +355,7 @@ MixxxFighter.modifierFiveButton = Button(function(_channel, control, value, stat
 
 MixxxFighter.modifierSixButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
-    if (MixxxFighter.shift) {
-      value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
-        engine.setValue(group, 'beatloop_size', engine.getValue(group, 'beatloop_size') - 1);
-      })
-    } else {
-      value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatloop_4_activate', 1);
-    }
+    beatLoop(4, value);
   } else if (MixxxFighter.modifierPage == 1) {
     hotcuePageTwo(6, value);
   } else if (MixxxFighter.modifierPage == 2) {
@@ -357,13 +366,7 @@ MixxxFighter.modifierSixButton = Button(function(_channel, control, value, statu
 
 MixxxFighter.modifierSevenButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
-    if (MixxxFighter.shift) {
-      value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
-        engine.setValue(group, 'beatloop_size', engine.getValue(group, 'beatloop_size') + 1);
-      })
-    } else {
-      value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatloop_8_activate', 1);
-    }
+    beatLoop(8, value);
   } else if (MixxxFighter.modifierPage == 1) {
     hotcuePageTwo(7, value);
   } else if (MixxxFighter.modifierPage == 2) {
@@ -374,13 +377,7 @@ MixxxFighter.modifierSevenButton = Button(function(_channel, control, value, sta
 
 MixxxFighter.modifierEightButton = Button(function(_channel, control, value, status, group) {
   if (MixxxFighter.modifierPage == 0) {
-    if (MixxxFighter.shift) {
-      value == BUTTON_RELEASED && forEachSelectedChannel(function (i, group) {
-        engine.setValue(group, 'beatloop_size', Math.floor(engine.getValue(group, 'beatloop_size') * 2));
-      })
-    } else {
-      value == BUTTON_RELEASED && engineSetValueForSelectedChannels('beatloop_16_activate', 1);
-    }
+    beatLoop(16, value);
   } else if (MixxxFighter.modifierPage == 1) {
     hotcuePageTwo(8, value);
   } else if (MixxxFighter.modifierPage == 2) {
