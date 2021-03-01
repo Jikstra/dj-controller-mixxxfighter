@@ -122,7 +122,7 @@ function channelButton(buttonChannelIndex, value) {
       if (MixxxFighter.shift) {
         if (MixxxFighter.buttonPressDuringChannelSelect === false) {
           engine.setValue(groupFromChannelIndex(buttonChannelIndex + 1), 'CloneFromDeck', MixxxFighter.activeChannel + 1);
-          switchChannel(MixxxFighter.activeChannel);
+          switchChannel(buttonChannelIndex);
           return;
         }
       }
@@ -142,24 +142,30 @@ MixxxFighter.channelThreeButton = channelButton(2);
 MixxxFighter.channelFourButton = channelButton(3);
 
 
-MixxxFighter.leftButton = Button(function(channel, control, value, status, group) {
-  if (MixxxFighter.shift && value == BUTTON_RELEASED) {
-    engine.setValue('[Library]', 'MoveUp', 1);
-    var firstPlayPosition = -1;
-    forEachSelectedChannel(function (i, group) {
-      engine.setValue(group, 'stop', 1);
-      if (firstPlayPosition === -1) {
-        firstPlayPosition = engine.getValue(group, 'playposition');
-      }
-      engine.setValue(group, 'LoadSelectedTrackAndPlay', 1);
-      engine.setValue(group, 'playposition', firstPlayPosition);
-      engine.setValue(group, 'quantize', 1);
-      engine.setValue(group, 'sync_enabled', 1);
-    })
-  }
-});
+function selectTrack(key) {
+  return Button(function(channel, control, value, status, group) {
+    if (MixxxFighter.shift && value == BUTTON_RELEASED) {
+      engine.setValue('[Library]', key, 1);
+      var firstPlayPosition = -1;
+      forEachSelectedChannel(function (i, group) {
+        engine.setValue(group, 'stop', 1);
+        if (firstPlayPosition === -1) {
+          firstPlayPosition = engine.getValue(group, 'playposition');
+        }
+        engine.setValue(group, 'quantize', 1);
+        engine.setValue(group, 'sync_enabled', 1);
+        engine.setValue(group, 'LoadSelectedTrackAndPlay', 1);
+        if (firstPlayPosition !== -1) {
+          engine.setValue(group, 'playposition', firstPlayPosition);
+        }
+      })
+    }
+  });
+}
 
+MixxxFighter.leftButton = selectTrack('MoveUp');
 MixxxFighter.upButton = Button(function(channel, control, value, status, group) {
+
   if (MixxxFighter.shift && value == BUTTON_PRESSED) {
     engineSetValueForSelectedChannels('cue_default', 1);
   } else if (value == BUTTON_RELEASED) {
@@ -179,21 +185,7 @@ MixxxFighter.downButton = Button(function(channel, control, value, status, group
   }
 });
 
-MixxxFighter.rightButton = Button(function(channel, control, value, status, group) {
-  if (MixxxFighter.shift && value == BUTTON_RELEASED) {
-    engine.setValue('[Library]', 'MoveDown', 1);
-    var firstPlayPosition = -1;
-    forEachSelectedChannel(function (i, group) {
-      engine.setValue(group, 'stop', 1);
-      if (firstPlayPosition === -1) {
-        firstPlayPosition = engine.getValue(group, 'playposition');
-      }
-      engine.setValue(group, 'LoadSelectedTrackAndPlay', 1);
-      engine.setValue(group, 'playposition', firstPlayPosition);
-      
-    })
-  }
-})
+MixxxFighter.rightButton = selectTrack('MoveDown');
 
 MixxxFighter.shiftButton = function(channel, control, value, status, group) {
   if (value == BUTTON_PRESSED) {
@@ -209,6 +201,7 @@ function rateTempButton(key_rate, key_rate_perm) {
   return Button(function(_channel, control, value, status, group) {
     if (value == BUTTON_PRESSED) {
       if (MixxxFighter.shift) {
+        if (key_rate_perm === false) return;
         forEachSelectedChannel(function (i, group) {
           if (engine.getValue(group, 'sync_enabled') === 1) {
             engine.setValue(group, 'sync_enabled', 0);
@@ -233,8 +226,8 @@ function rateTempButton(key_rate, key_rate_perm) {
 }
 
 MixxxFighter.playButton = rateTempButton('rate_temp_down', 'rate_perm_down_small');
-MixxxFighter.slowerButton = rateTempButton('rate_temp_down_small', 'rate_perm_down_small');
-MixxxFighter.fasterButton = rateTempButton('rate_temp_up_small', 'rate_perm_up_small');
+MixxxFighter.slowerButton = rateTempButton('rate_temp_down_small', false);
+MixxxFighter.fasterButton = rateTempButton('rate_temp_up_small', false);
 MixxxFighter.emergencyLoopButton = rateTempButton('rate_temp_up', 'rate_perm_up_small');
 
 function hotcuePageTwo(hotcueNumber, value) {
