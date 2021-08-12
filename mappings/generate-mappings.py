@@ -66,9 +66,6 @@ def button(jsMethod, description, ctrl):
         
     ''')
 
-def playButton():
-    return button(myFname(), "Play button", C['MIDI_CTRL_PLAY'])
-
 if __name__ == '__main__':
     print(header())
     button("channelOneButton",   "Channel one button",   C['MIDI_CTRL_CH1'])
@@ -81,10 +78,10 @@ if __name__ == '__main__':
     button("downButton",  "Down button",  C['MIDI_CTRL_DOWN'])
     button("rightButton", "Right button", C['MIDI_CTRL_RIGHT'])
 
-    button("playButton",          "Play button", C['MIDI_CTRL_PLAY'])
-    button("slowerButton",        "Make deck temporary slower (beatmatching)", C['MIDI_CTRL_SLOWER'])
-    button("fasterButton",        "Make deck temporary faster (beatmatching)", C['MIDI_CTRL_FASTER'])
-    button("emergencyLoopButton", "Set emergency loop", C['MIDI_CTRL_EMERGENCY_LOOP'])
+    button("nudgeBackButton",          "Nudge back while paused, make deck temporary slower while playing",               C['MIDI_CTRL_PLAY'])
+    button("nudgeLittleBackButton",    "Nudge little back while paused, make deck temporary little slower while playing", C['MIDI_CTRL_SLOWER'])
+    button("nudgeLittleForwardButton", "Nudge little forward while paused, make deck temporary faster while playing",     C['MIDI_CTRL_FASTER'])
+    button("nudgeForwardButton",       "Nudge forward while paused, make deck faster while playing",                      C['MIDI_CTRL_EMERGENCY_LOOP'])
 
     button("shiftButton", "Shift button", C['MIDI_CTRL_SHIFT'])
 
